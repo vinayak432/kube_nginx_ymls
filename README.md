@@ -1,32 +1,28 @@
-# kube_nginx_ymls
-
 # 🚀 Kubernetes Nginx Scheduling Lab
 
-This repository contains Kubernetes YAML manifests used to understand and test:
+This repository is a hands-on Kubernetes lab to understand how pod scheduling works using:
 
-- Pods
-- ReplicaSets
-- Deployments
-- DaemonSets
-- Services
 - Taints & Tolerations
 - NodeSelector
-- NodeAffinity
+- NodeAffinity (Hard & Soft)
 - PodAffinity
 - PodAntiAffinity
+- Deployments
+- ReplicaSets
+- DaemonSets
+- Services
 
-All examples are tested on a **3-node cluster**:
-
-- 1 Control Plane (tainted)
-- 2 Worker Nodes
+All examples use **nginx** to demonstrate real scheduling behaviour.
 
 ---
 
-## 🖥️ Cluster Setup
+## 🖥️ Cluster Setup Used
+
+This repo was tested on a 3-node cluster:
 
 | Node | Role | Notes |
 |------|------|------|
-| Control Plane | Master | Tainted (no scheduling) |
+| Control Plane | Master | Tainted (not used for scheduling) |
 | Worker 1 | Compute | size=big |
 | Worker 2 | Compute | size=big |
 
@@ -37,11 +33,17 @@ kubernetes.io/hostname
 size=big
 
 
-(No zone labels available)
+No zone labels exist, so:
+
+
+kubernetes.io/hostname
+
+
+is used as topology key.
 
 ---
 
-## 📦 Workloads Used
+## 📦 Workloads
 
 | App | Label |
 |-----|------|
@@ -50,17 +52,26 @@ size=big
 
 ---
 
-## 📂 Repository Contents
+## 📂 YAML Files Explained
+
+### Basic Objects
 
 | File | Purpose |
 |------|--------|
-| nginx-pod.yaml | Basic Pod |
+| nginx-pod.yaml | Simple Pod |
 | nginx-rs.yaml | ReplicaSet |
-| nginx-rs-toleration.yaml | RS with tolerations |
+| nginx-rs-toleration.yaml | RS with toleration |
 | nginx-daemonset.yaml | DaemonSet |
-| nginx_deployment.yaml | Rolling update deployment |
-| nginx_service_lb.yaml | LoadBalancer service |
-| nginx_deploy_nodeselector.yaml | NodeSelector scheduling |
+| nginx_deployment.yaml | Rolling Update Deployment |
+| nginx_service_lb.yaml | LoadBalancer Service |
+
+---
+
+### Scheduling Examples
+
+| File | Concept |
+|------|--------|
+| nginx_deploy_nodeselector.yaml | NodeSelector |
 | nginx_deploy_nodeaff_hard_rule.yaml | Hard NodeAffinity |
 | nginx_deploy_nodeaff_soft_rule.yaml | Soft NodeAffinity |
 | nginx_backend.yaml | Backend deployment |
@@ -69,94 +80,86 @@ size=big
 
 ---
 
-## 🧠 Scheduling Concepts Covered
+## 🧠 Concepts Demonstrated
 
-### 1️⃣ NodeSelector
-Schedule pods on nodes with matching labels.
-
-Example:
-
-size=big
-
+### NodeSelector
+Schedules pods to nodes with matching labels.
 
 ---
 
-### 2️⃣ NodeAffinity
+### NodeAffinity
 
-#### Hard Rule
+Hard Rule:
+
 
 requiredDuringSchedulingIgnoredDuringExecution
 
-Pod MUST match node label.
 
-#### Soft Rule
+Soft Rule:
+
 
 preferredDuringSchedulingIgnoredDuringExecution
 
-Scheduler tries but not mandatory.
 
 ---
 
-### 3️⃣ PodAffinity
+### PodAffinity
 
-Used to **co-locate pods**.
+Used to place pods **together**.
 
 Example:
-- Run nginx near backend pods
-- Uses pod labels (not node labels)
 
-Topology used:
-
-kubernetes.io/hostname
-
+Run nginx near backend pods.
 
 ---
-
-### 4️⃣ PodAntiAffinity
-
-Used to **spread pods apart**.
-
-Example:
-- Prevent nginx replicas from running on same node
-- Improves High Availability (HA)
-
----
-
-## ⚠️ Important Learnings
-
-| Scenario | Result |
-|----------|--------|
-| Hard PodAffinity without matching pods | Pods Pending |
-| Hard PodAntiAffinity with 2 nodes & 3 replicas | 1 Pending |
-| replicas ≤ nodes | All Running |
-| replicas > nodes (hard anti-affinity) | Extra pods Pending |
-| AntiAffinity label absent in cluster | Rule ignored |
-
----
-
-## 📊 Behaviour Observed
 
 ### PodAntiAffinity
 
-| Replicas | Nodes | Result |
-|----------|-------|--------|
+Used to **spread pods apart** for High Availability.
+
+Example:
+
+Prevent nginx replicas from running on same node.
+
+---
+
+## ⚠️ Observed Behaviour
+
+### PodAntiAffinity
+
+| Replicas | Worker Nodes | Result |
+|----------|--------------|--------|
 | 2 | 2 | Spread perfectly |
 | 3 | 2 | 1 Pending |
 | 4 | 2 | 2 Pending |
 
+Reason:
+
+Hard anti-affinity allows:
+
+
+Max pods = number of topology domains
+
+
+Here:
+
+
+Domains = Nodes = 2
+
+
 ---
 
-### AntiAffinity Selector Impact
+### AntiAffinity Selector Behaviour
 
-| Selector | Meaning |
+| Selector | Effect |
 |----------|--------|
-| app=nginx | Spread nginx |
+| app=nginx | Spread nginx pods |
 | app=backend | Avoid backend nodes |
 | No matching pods | Rule ignored |
 
 ---
 
-## 🛠️ Apply Examples
+## 🛠️ How To Run
 
 Deploy backend:
 
@@ -188,19 +191,23 @@ kubectl delete deployment --all
 
 ## 🎯 Goal
 
-This repo is built for **hands-on understanding of Kubernetes scheduling behaviour**, especially:
+This repository helps understand:
 
-- Node-based placement
-- Pod co-location
-- Pod spreading for HA
+✔ Node-based scheduling  
+✔ Pod co-location  
+✔ Pod spreading for HA  
+✔ Hard vs Soft rules  
+✔ Scheduling limits in small clusters  
 
 ---
 
-## 📘 Key Takeaway
+## 📘 Key Takeaways
 
-PodAffinity = Bring pods together  
-PodAntiAffinity = Spread pods apart  
-NodeAffinity = Choose where to run
+| Feature | Purpose |
+|--------|--------|
+| NodeAffinity | Choose node |
+| PodAffinity | Bring pods together |
+| PodAntiAffinity | Spread pods apart |
 
 ---
 
